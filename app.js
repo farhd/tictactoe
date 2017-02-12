@@ -7,7 +7,7 @@ Vue.component('ttt-cell', {
 
   data() {
     return {
-      value: ''
+      value: null
     };
   },
 
@@ -25,13 +25,15 @@ Vue.component('ttt-cell', {
     mark() {
       // whenever the button is clicked, it dispatches a 'mark' event 
       /// -> (if it has it's 'value' empty).
-      if (this.value.length === 0) eventHub.$emit('mark', this.id);
+      if (this.value === null) eventHub.$emit('mark', this.id);
     },
     update(data) {
-      if (data.id === this.id) this.value = data.value;
+      if (data.id === this.id) {
+        this.value = data.value;
+      }
     },
     reset() {
-      this.value = '';
+      this.value = null;
     }
   }
 });
@@ -50,7 +52,8 @@ let app = new Vue({
 
     playerTurn: true,
 
-    numnodes: 0
+    gameFinished: false,
+    gameResult: null
   },
 
   computed: {
@@ -64,7 +67,6 @@ let app = new Vue({
 
   watch: {
     board: function(newBoard, oldBoard) {
-      console.log('board change');
       this.registerMove(newBoard, oldBoard);
     }
   },
@@ -81,6 +83,7 @@ let app = new Vue({
 
   methods: {
     initBoard() {
+      if (this.board.length > 0) this.board = [];
       let dimensionSize = this.dimensionSize;
       // fill initially the board with null's
       for (let i=0; i < dimensionSize; i++) {
@@ -105,27 +108,28 @@ let app = new Vue({
     reset() {
       this.player = null;
       this.pc = null;
-      this.board.forEach(function(row, i) {
-        this.board[i].forEach(function(col, j) {
-          this.board[i][j] = null;
-        }, this);
-      }, this);
-      eventHub.$emit('reset');
+      this.gameResult = null;
+      this.gameFinished = false;
       this.initBoard();
+      eventHub.$emit('reset');
       this.toggleGame();
     },
 
-    markCell(id) {
-      let dimensionSize = this.dimensionSize;
-      let cellRow = id > (dimensionSize-1) ? Math.floor(id/dimensionSize) : 0;
-      let cellCol = id % dimensionSize;
-
+    markCell(num) {
+      const [cellRow, cellCol] = this.transform1dTo2d(num);
       if (this.board[cellRow][cellCol] === null) {
-        console.log('mark', id);
         let newBoard = this.copyBoard(this.board);
         newBoard[cellRow][cellCol] = this.currentPlayer;
         this.board = newBoard;
       }
+    },
+
+    transform1dTo2d(num) {
+      let dimensionSize = this.dimensionSize;
+      let cellRow = num > (dimensionSize-1) ? Math.floor(num/dimensionSize) : 0;
+      let cellCol = num % dimensionSize;
+
+      return [cellRow, cellCol];
     },
 
     copyBoard(board) {
@@ -194,56 +198,37 @@ let app = new Vue({
       return null;
     },
 
-    minMax(board, player) {
-      this.numnodes++;
-      let winner = this.getWinner(board);
-      if (winner !== null) {
-        switch(winner) {
-          case this.pc:
-            return [1, board];
-          case this.player:
-            return [-1, board];
-          case -1:
-            return [0, board];
-        }
+    randomMove(board, player) {
+      // take a random cell, if it's not null, use it
+      // else take another random one, not already used
+      const i = parseInt(Math.random() * 10 % 3);
+      const j = parseInt(Math.random() * 10 % 3);
+      const cell = board[i][j];
+      if (cell === null) {
+        let newBoard = this.copyBoard(board);
+        newBoard[i][j] = player;
+        return newBoard;
       }
-      else {
-        let nextVal = null;
-        let nextBoard = null;
-
-        for (let i = 0; i < this.dimensionSize; i++) {
-          for (let j = 0; j < this.dimensionSize; j++) {
-            if (board[i][j] === null) {
-              board[i][j] = player;
-              let value = this.minMax(board, player === 0 ? 1 : 0)[0];
-              if ((player && (nextVal === null || value > nextVal)) || (!player && (nextVal === null || value < nextVal))) {
-                nextBoard = this.copyBoard(board);
-                nextVal = value;
-              }
-              board[i][j] = null;
-            }
-          }
-        }
-        return [nextVal, nextBoard];
-      }
+      else return this.randomMove(board, player);
     },
 
     pcMove() {
       let copyBoard = this.copyBoard(this.board);
-      let pcNextMoveBoard = this.minMax(copyBoard, this.pc)[1];
-      console.log('num. of nodes: ', this.numnodes);
+      let pcNextMoveBoard = this.randomMove(copyBoard, this.pc);
       this.board = pcNextMoveBoard;
     },
 
     checkResult() {
       let winner = this.getWinner(this.board);
-      if (winner === this.player) console.log('You won!');
-      else if (winner === this.pc) console.log('PC won!');
-      else if (winner === -1) console.log('draw...');
-      else if (!this.playerTurn) {
-        console.log('next round...');
-        this.pcMove();
-      }
+      // game ends...
+      if (winner !== null) this.endGame(winner);
+      // or next round...
+      else if (!this.playerTurn) this.pcMove();
+    },
+
+    endGame(result) {
+      this.gameFinished = true;
+      this.gameResult = result;
     }
   }
 })

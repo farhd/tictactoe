@@ -40,3 +40,9 @@ h2 {
 .box[value="0"]:before  {
   content:'O';
 }
+
+.player-choice {
+  font-size: 20px;
+  border: 1px solid lightgray;
+  padding: 4px;
+}

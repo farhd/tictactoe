@@ -12,7 +12,7 @@
       <div class="columns">
         <div class="centered text-center">
           <h2 class="mt-10">TicTacToe</h2>
-          <button class="mt-10" @click="reset">Reset</button>
+          <button class="btn mt-10" @click="reset">Restart</button>
           <div class="board mt-10 grid" id="board">
             <ttt-cell v-for="n in boardSize" :id="n-1"></ttt-cell>
           </div>
@@ -21,35 +21,43 @@
           </footer>
         </div>
         
-        <div :class="['modal', 'modal-sm', {'active': isGameOn}]">
+        <div :class="['modal', 'modal-sm', {'active': isGameOn || gameFinished}]">
           <div class="modal-overlay"></div>
           <div class="modal-container text-center">
+            <div v-show="isGameOn">
               <div class="modal-header">
-                  <div class="modal-title">Would you like to be X or O?</div>
+                <div class="modal-title">Would you like to be X or O?</div>
               </div>
               <div class="modal-body">
-                  <div class="content">
-                    <label>
-                      O 
-                      <input 
-                        type="radio" 
-                        value="0" 
-                        name="playerChoice"
-                        @click="chooseSides"
-                        v-model="player" />
-                    </label>
-                    &nbsp;
-                    <label>
-                      <input 
-                        type="radio" 
-                        value="1" 
-                        name="playerChoice"
-                        @click="chooseSides"
-                        v-model="player" />
-                      X
-                    </label>
-                  </div>
+                <div class="content">
+                  <button 
+                    class="btn" 
+                    value="0"
+                    @click="chooseSides"
+                    >O</button>
+                  &nbsp;
+                  <button 
+                    class="btn" 
+                    value="1"
+                    @click="chooseSides"
+                    >X</button>
+                </div>
               </div>
+            </div>
+            
+            <div v-show="gameFinished">
+              <div class="modal-header">
+                <div class="modal-title" v-if="gameResult !== null">
+                  <p v-if="gameResult === -1">Tie!</p>
+                  <p v-else>{{ gameResult === player ? 'You' : 'PC' }} won!</p>
+                </div>
+              </div>
+              <div class="modal-body">
+                <div class="content">
+                  <button class="btn mt-10" @click="reset">Restart</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
