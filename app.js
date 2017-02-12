@@ -1,7 +1,7 @@
 let eventHub = new Vue();
 
 Vue.component('ttt-cell', {
-  template: '<button class="box" :value="value" @click="mark" :id="id"></button>',
+  template: '<button class="box btn" :value="value" @click="mark" :id="id"></button>',
 
   props: ['id'],
 
